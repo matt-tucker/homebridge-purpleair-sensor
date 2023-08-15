@@ -44,7 +44,7 @@ class PurpleAirSensor implements AccessoryPlugin {
 
   private readonly verboseLogging: boolean;
   private readonly updateIntervalMs: number;
-  private readonly service: Service;
+  private readonly airQualityService: Service;
   private readonly temperatureService: Service;
   private readonly humidityService: Service;
   private readonly informationService: Service;
@@ -57,7 +57,7 @@ class PurpleAirSensor implements AccessoryPlugin {
     this.name = config.name;
     this.localIPAddress = config.localIPAddress;
     this.apiReadKey = config.apiReadKey;
-    this.service = new hap.Service.AirQualitySensor(this.name);
+    this.airQualityService = new hap.Service.AirQualitySensor(this.name);
     this.temperatureService = new hap.Service.TemperatureSensor(this.name);
     this.humidityService = new hap.Service.HumiditySensor(this.name);
 
@@ -76,7 +76,27 @@ class PurpleAirSensor implements AccessoryPlugin {
     // eslint-disable-next-line max-len
     this.logger.info(`Initializing PurpleAirSensor ${this.name} ${this.sensor} update every ${this.updateIntervalMs} ms using ${this.averages} averages and ${this.conversion} conversion`);
 
-    this.service.getCharacteristic(hap.Characteristic.StatusActive)
+    this.airQualityService.getCharacteristic(hap.Characteristic.StatusActive)
+      .on(CharacteristicEventTypes.GET, (callback: CharacteristicGetCallback) => {
+        if (this.lastReading !== undefined) {
+          this.update();
+          callback(null, this.lastReadingActive);
+        } else {
+          callback(null, false);
+        }
+      });
+
+    this.temperatureService.getCharacteristic(hap.Characteristic.StatusActive)
+      .on(CharacteristicEventTypes.GET, (callback: CharacteristicGetCallback) => {
+        if (this.lastReading !== undefined) {
+          this.update();
+          callback(null, this.lastReadingActive);
+        } else {
+          callback(null, false);
+        }
+      });
+
+    this.humidityService.getCharacteristic(hap.Characteristic.StatusActive)
       .on(CharacteristicEventTypes.GET, (callback: CharacteristicGetCallback) => {
         if (this.lastReading !== undefined) {
           this.update();
@@ -174,7 +194,7 @@ class PurpleAirSensor implements AccessoryPlugin {
   getServices(): Service[] {
     return [
       this.informationService,
-      this.service,
+      this.airQualityService,
       this.temperatureService, 
       this.humidityService,
     ];
@@ -186,11 +206,11 @@ class PurpleAirSensor implements AccessoryPlugin {
 
   updateHomeKit(aqiInsteadOfDensity: boolean) {
     if (this.lastReading !== undefined) {
-      this.service.setCharacteristic(hap.Characteristic.AirQuality, this.lastReading.airQualityHomekitReading);
+      this.airQualityService.setCharacteristic(hap.Characteristic.AirQuality, this.lastReading.airQualityHomekitReading);
       if (aqiInsteadOfDensity) {
-        this.service.setCharacteristic(hap.Characteristic.PM2_5Density, this.lastReading.aqi);
+        this.airQualityService.setCharacteristic(hap.Characteristic.PM2_5Density, this.lastReading.aqi);
       } else {
-        this.service.setCharacteristic(hap.Characteristic.PM2_5Density, this.lastReading.pm25);
+        this.airQualityService.setCharacteristic(hap.Characteristic.PM2_5Density, this.lastReading.pm25);
       }
       if (this.lastReading.temperature) {
         this.temperatureService.setCharacteristic(hap.Characteristic.CurrentTemperature, this.lastReading.temperature);
@@ -198,7 +218,7 @@ class PurpleAirSensor implements AccessoryPlugin {
       this.humidityService.setCharacteristic(hap.Characteristic.CurrentRelativeHumidity, this.lastReading.humidity);
 
       if (this.lastReading.voc) {
-        this.service.setCharacteristic(hap.Characteristic.VOCDensity, this.lastReading.voc);
+        this.airQualityService.setCharacteristic(hap.Characteristic.VOCDensity, this.lastReading.voc);
       }
     }
   }
