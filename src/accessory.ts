@@ -186,7 +186,9 @@ class PurpleAirSensor implements AccessoryPlugin {
       } else {
         this.service.setCharacteristic(hap.Characteristic.PM2_5Density, this.lastReading.pm25);
       }
-      this.service.setCharacteristic(hap.Characteristic.CurrentTemperature, this.lastReading.temperature);
+      if (this.lastReading.temperature) {
+        this.service.setCharacteristic(hap.Characteristic.CurrentTemperature, this.lastReading.temperature);
+      }
       this.service.setCharacteristic(hap.Characteristic.CurrentRelativeHumidity, this.lastReading.humidity);
 
       if (this.lastReading.voc) {
