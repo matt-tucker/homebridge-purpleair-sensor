@@ -30,8 +30,10 @@ function parseLocalPurpleAirJson(data, averages?: string, conversion?: string) {
   const conv = conversion ?? 'None';
   const pm25 = parseFloat(data.pm2_5_atm);
   const pm25Cf1 = parseFloat(data.pm2_5_cf_1);
-  const temperature = parseFloat(data.current_temp_f);
-  const humidity = parseFloat(data.current_humidity);
+  // PurpleAir temperature and humidity sensors measure device and not explicitly ambient air. Device maker suggests
+  // subtracting 8 degrees from temperature and adding 4 percent to humidity to get a close approximation of real values.
+  const temperature = parseFloat(data.current_temp_f) - 8;
+  const humidity = parseFloat(data.current_humidity) + 4;
   const sensor = data.Id;
   return new SensorReading(sensor, pm25, pm25Cf1, temperature, humidity, null, conv);
 }
@@ -86,23 +88,6 @@ export class SensorReading {
 
   get airQualityHomekitReading(): number {
     return SensorReading.aqiToHomekit(this.aqi);
-  }
-
-  get temperatureHomekitReading(): number | null {
-    // PurpleAir temp sensor is of device and not explicitly ambient air temp. Device maker
-    // suggests subtracting 8 degrees to get a close approximation of ambient temp.
-    if (this.temperature == null) {
-      return null;
-    }
-    else {
-      return this.temperature - 8;
-    }
-  }
-
-  get humidityHomekitReading(): number {
-    // PurpleAir humidity sensor is of device and not explicitly ambient humidity. Device maker
-    // suggests adding 4 percent to get a close approximation of actual humidity.
-    return this.humidity + 4;
   }
 
   static aqiToHomekit(aqi: number): number {
