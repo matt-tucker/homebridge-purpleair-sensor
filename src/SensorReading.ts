@@ -32,10 +32,18 @@ function parseLocalPurpleAirJson(data, averages?: string, conversion?: string) {
   const pm25Cf1 = parseFloat(data.pm2_5_cf_1);
   // PurpleAir temperature and humidity sensors measure device and not explicitly ambient air. Device maker suggests
   // subtracting 8 degrees from temperature and adding 4 percent to humidity to get a close approximation of real values.
-  const temperature = parseFloat(data.current_temp_f) - 8;
+  const temperature = farenheitToCelsius(parseFloat(data.current_temp_f) - 8);
   const humidity = parseFloat(data.current_humidity) + 4;
   const sensor = data.Id;
   return new SensorReading(sensor, pm25, pm25Cf1, temperature, humidity, null, conv);
+}
+
+function farenheitToCelsius(farenheit: number): number {
+  if (farenheit) {
+    return ((farenheit - 32) * 5) / 9;
+  } else {
+    return farenheit;
+  }   
 }
 
 export class SensorReading {
@@ -63,7 +71,8 @@ export class SensorReading {
   }
 
   public toString = () : string => {
-    return `SensorReading(AQI=${this.aqi.toFixed(0)}, PM25=${this.pm25}u/m3, PM25_CF1=${this.pm25Cf1}u/m3, Temperature=${this.temperature} Humidity=${this.humidity}, VOC=${this.voc})`;
+    return `SensorReading(AQI=${this.aqi.toFixed(0)}, PM25=${this.pm25}u/m3, PM25_CF1=${this.pm25Cf1}u/m3, ' +
+      'Temperature=${this.temperature} Humidity=${this.humidity}, VOC=${this.voc})`;
   };
 
   get aqi(): number {
