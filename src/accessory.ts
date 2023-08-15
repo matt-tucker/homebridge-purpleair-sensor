@@ -45,6 +45,8 @@ class PurpleAirSensor implements AccessoryPlugin {
   private readonly verboseLogging: boolean;
   private readonly updateIntervalMs: number;
   private readonly service: Service;
+  private readonly temperatureService: Service;
+  private readonly humidityService: Service;
   private readonly informationService: Service;
   private lastReading?: SensorReading;
 
@@ -56,6 +58,8 @@ class PurpleAirSensor implements AccessoryPlugin {
     this.localIPAddress = config.localIPAddress;
     this.apiReadKey = config.apiReadKey;
     this.service = new hap.Service.AirQualitySensor(this.name);
+    this.temperatureService = new hap.Service.TemperatureSensor(this.name);
+    this.humidityService = new hap.Service.HumiditySensor(this.name);
 
     this.verboseLogging = config.verboseLogging;
 
@@ -171,6 +175,8 @@ class PurpleAirSensor implements AccessoryPlugin {
     return [
       this.informationService,
       this.service,
+      this.temperatureService, 
+      this.humidityService,
     ];
   }
 
@@ -187,9 +193,9 @@ class PurpleAirSensor implements AccessoryPlugin {
         this.service.setCharacteristic(hap.Characteristic.PM2_5Density, this.lastReading.pm25);
       }
       if (this.lastReading.temperature) {
-        this.service.setCharacteristic(hap.Characteristic.CurrentTemperature, this.lastReading.temperature);
+        this.temperatureService.setCharacteristic(hap.Characteristic.CurrentTemperature, this.lastReading.temperature);
       }
-      this.service.setCharacteristic(hap.Characteristic.CurrentRelativeHumidity, this.lastReading.humidity);
+      this.humidityService.setCharacteristic(hap.Characteristic.CurrentRelativeHumidity, this.lastReading.humidity);
 
       if (this.lastReading.voc) {
         this.service.setCharacteristic(hap.Characteristic.VOCDensity, this.lastReading.voc);
