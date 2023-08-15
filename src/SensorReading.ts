@@ -19,19 +19,21 @@ function parseRemotePurpleAirJson(data, averages?: string, conversion?: string) 
     }
   })();
   const pm25Cf1 = parseFloat(sensor_data['pm2.5_cf_1']);
+  const temperature = parseFloat(sensor_data.temperature);
   const humidity = parseFloat(sensor_data.humidity);
   const sensor = sensor_data.sensor_index;
   const voc = sensor_data.voc ? parseFloat(sensor_data.voc) : null;
-  return new SensorReading(sensor, pm25, pm25Cf1, humidity, voc, conv);
+  return new SensorReading(sensor, pm25, pm25Cf1, temperature, humidity, voc, conv);
 }
 
 function parseLocalPurpleAirJson(data, averages?: string, conversion?: string) {
   const conv = conversion ?? 'None';
   const pm25 = parseFloat(data.pm2_5_atm);
   const pm25Cf1 = parseFloat(data.pm2_5_cf_1);
+  const temperature = parseFloat(data.current_temp_f);
   const humidity = parseFloat(data.current_humidity);
   const sensor = data.Id;
-  return new SensorReading(sensor, pm25, pm25Cf1, humidity, null, conv);
+  return new SensorReading(sensor, pm25, pm25Cf1, temperature, humidity, null, conv);
 }
 
 export class SensorReading {
@@ -42,6 +44,7 @@ export class SensorReading {
    * @param sensor sensor station number (digits)
    * @param pm25 sensor pm 2.5 value (PM2_5Value)
    * @param pm25Cf1 sensor pm 2.5 value from CF1 / standard particles (pm2_5_cf_1)
+   * @param temperature sensor temperature value, if available
    * @param humidity sensor humidity value
    * @param voc sensor Voc value
    * @param conversion conversion ("None", "AQandU", "LRAPA", "EPA", or "WOODSMOKE"). Default to None.
@@ -50,6 +53,7 @@ export class SensorReading {
       public readonly sensor: string,
       public readonly pm25: number,
       public readonly pm25Cf1: number,
+      public readonly temperature: number | null,
       public readonly humidity: number,
       public readonly voc: number | null,
       public readonly conversion: string) {
@@ -57,7 +61,7 @@ export class SensorReading {
   }
 
   public toString = () : string => {
-    return `SensorReading(AQI=${this.aqi.toFixed(0)}, PM25=${this.pm25}u/m3, PM25_CF1=${this.pm25Cf1}u/m3, Humidity=${this.humidity}, VOC=${this.voc})`;
+    return `SensorReading(AQI=${this.aqi.toFixed(0)}, PM25=${this.pm25}u/m3, PM25_CF1=${this.pm25Cf1}u/m3, Temperature=${this.temperature} Humidity=${this.humidity}, VOC=${this.voc})`;
   };
 
   get aqi(): number {
@@ -82,6 +86,23 @@ export class SensorReading {
 
   get airQualityHomekitReading(): number {
     return SensorReading.aqiToHomekit(this.aqi);
+  }
+
+  get temperatureHomekitReading(): number | null {
+    // PurpleAir temp sensor is of device and not explicitly ambient air temp. Device maker
+    // suggests subtracting 8 degrees to get a close approximation of ambient temp.
+    if (this.temperature == null) {
+      return null;
+    }
+    else {
+      return this.temperature - 8;
+    }
+  }
+
+  get humidityHomekitReading(): number {
+    // PurpleAir humidity sensor is of device and not explicitly ambient humidity. Device maker
+    // suggests adding 4 percent to get a close approximation of actual humidity.
+    return this.humidity + 4;
   }
 
   static aqiToHomekit(aqi: number): number {
